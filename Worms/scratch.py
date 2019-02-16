@@ -1,121 +1,109 @@
 import pygame
-from pygame import time
-from pygame.locals import *
-
+import math
 pygame.init()
-pygame.key.set_repeat(2,40)
 
-movingLeft = False
-movingRight = False
+win = pygame.display.set_mode((700 ,700))
 
-walkCount = 0
+pygame.display.set_caption('Worms Eater')
 
-walkRight = [pygame.image.load('tile000.png'),
-             pygame.image.load('tile001.png'),
-             pygame.image.load('tile002.png'),
-             pygame.image.load('tile003.png'),
-             pygame.image.load('tile004.png'),
-             pygame.image.load('tile005.png'),
-             pygame.image.load('tile006.png'),
-             pygame.image.load('tile007.png'),
-             pygame.image.load('tile008.png')]
+run = True
 
-walkLeft = [pygame.image.load('tile000-Reversed.png'),
-            pygame.image.load('tile001-Reversed.png'),
-            pygame.image.load('tile002-Reversed.png'),
-            pygame.image.load('tile003-Reversed.png'),
-            pygame.image.load('tile004-Reversed.png'),
-            pygame.image.load('tile005-Reversed.png'),
-            pygame.image.load('tile006-Reversed.png'),
-            pygame.image.load('tile007-Reversed.png'),
-            pygame.image.load('tile008-Reversed.png')]
 
-width = 80
-height = 80
+class character():
 
-# Ouverture de la fenêtre Pygame
-fenetre = pygame.display.set_mode((626, 352))
-
-# Chargement et collage du fond
-fond_ciel = pygame.image.load("ciel.jpg").convert()
-
-fond_grass = pygame.image.load("background.jpg").convert()
-position_floor = fond_grass.get_rect(x=0,y=300)
-
-# Chargement et collage du personnage
-perso = pygame.image.load("tile000.png").convert_alpha()
-position_perso = perso.get_rect(x=0,y=0)
-fenetre.blit(perso, position_perso)
-
-# Rafraîchissement de l'écran
-pygame.display.flip()
-clock = time.Clock()
-
-class Projectile(object):
-
-    def __init__(self,x,y,radius,color,facing):
+    def __init__(self,x,y,width,heigth,vel):
         self.x = x
         self.y = y
-        self.radius = radius
-        self.color = color
-        self.facing = facing
-        self.vel = 8 * facing
+        self.width = width
+        self.heigth = heigth
+        self.vel = vel
+        self.jumpCount = 10
+        self.isJump = False
+        self.keys = pygame.key.get_pressed()
+
+    def movement(self):
+        self.keys = pygame.key.get_pressed()
+
+        if self.keys[pygame.K_LEFT] and self.x > 0:
+            self.x -= self.vel
+        if self.keys[pygame.K_RIGHT] and self.x < 500 - self.width:
+            self.x += self.vel
+
+        if not self.isJump:
+            if self.keys[pygame.K_UP] and self.y > 0:
+                self.y -= self.vel
+            if self.keys[pygame.K_DOWN] and self.y < 500 - self.heigth:
+                self.y += self.vel
+            if self.keys[pygame.K_SPACE]:
+                self.isJump = True
+        else:
+            if self.jumpCount >= -10:
+                self.neg = 1
+                if self.jumpCount < 0:
+                    self.neg = -1
+                self.y -= (self.jumpCount ** 2) * 0.5 * self.neg
+                self.jumpCount -= 1
+
+            else:
+                self.isJump = False
+                self.jumpCount = 10
 
     def draw(self):
-        pygame.draw.circle(fenetre, self.color, (self.x,self.y), self.radius, 1)
+        pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
 
 
-def displayer():
-    global walkCount
-    fenetre.blit(fond_ciel, (0, 0))
-    fenetre.blit(fond_grass, (0, 300))
-    if walkCount + 1 > 27:
-        walkCount = 0
-    if movingLeft:
-        fenetre.blit(walkLeft[walkCount//3], position_perso)
-        walkCount += 1
-    elif movingRight:
-        fenetre.blit(walkRight[walkCount//3], position_perso)
-        walkCount += 1
-    else:
-        fenetre.blit(perso, position_perso)
-    pygame.display.flip()
 
-# BOUCLE INFINIE
-continuer = 1
-while continuer:
-    dt = clock.tick(60)
-    for event in pygame.event.get():  # Attente des événements
-        if event.type == QUIT:
-            continuer = 0
-        if event.type == KEYDOWN:
-            if event.key == K_RIGHT:
-                movingLeft = False
-                movingRight = True
-                position_perso = position_perso.move(5, 0)
-            elif event.key == K_LEFT:
-                movingLeft = True
-                movingRight = False
-                position_perso = position_perso.move(-5, 0)
-            elif event.key == K_e:
-                for i in range(100):
-                    pygame.draw.circle(fenetre,(0,0,0), (i,i), 2, 0)
-                pass
-            else:
-                movingLeft = False
-                movingRight = False
-        else:
-            movingLeft = False
-            movingRight = False
-            walkCount = 0
+draw = False
+t = 0
+x = 250
+y = 600
+timer = 0.1
+nug = 1
+ch = character(50,50,50,20,5)
+while run:
+    pygame.time.delay(50)
 
-    if position_perso.colliderect(position_floor) != 1:
-        position_perso = position_perso.move(0, 0.7 * dt)
-    if position_perso.y > 240:
-        print(position_perso.y)
-        position_perso = position_perso.move(0,-50)
-    position_perso = pygame.Rect(position_perso.x,position_perso.y, 75,75)
-    # Re-collage
-    displayer()
-    # Rafraichissement
 
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+    if pygame.key.get_pressed()[pygame.K_e]:
+        draw = True
+
+    speed = 50
+    alpha = math.radians(85)
+    g = -9.81
+
+    if y > 600:
+        y = 600
+
+    if draw:
+
+        x += speed * math.cos(alpha) * t
+        y += (-(-(1 / 2) * g * math.pow(2,t)  + (speed * math.sin(alpha) * t))) * nug
+        t += timer
+
+
+    pygame.draw.rect(win, (255, 0, 0), (x, y, 5, 5))
+    pygame.display.update()
+    print('Temps =', t)
+    print('Position y =', y)
+    if not draw:
+        t = 0
+        timer = 0.1
+    if t >= 1:
+        nug = -1
+        timer = -0.1
+    if t <= 0:
+        nug = 1
+        draw = False
+
+
+    ch.movement()
+    win.fill((0,0,0))
+    ch.draw()
+
+
+
+pygame.quit()
