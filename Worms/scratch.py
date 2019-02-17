@@ -1,5 +1,6 @@
 import pygame
 import math
+import random
 import numpy as np
 pygame.init()
 
@@ -12,12 +13,14 @@ run = True
 
 global items_to_update
 global players
+global wind
 
-
+def random_wind_interval():
+    return (random.uniform(-1, 1), random.uniform(-1, 1))
 
 class Projectile():
 
-    def __init__(self, x, y, mouse_pos, speed=150):
+    def __init__(self, x, y, mouse_pos, speed=150, mass=10):
         self.x = x
         self.y = y - 1
         self.init_x = x
@@ -25,6 +28,7 @@ class Projectile():
         self.gravity = -9.81
         self.mouse_pos = mouse_pos
         self.speed = speed
+        self.mass = mass
         self.t = 0
         self.first_time = True
         self.alpha = math.radians(0)
@@ -58,9 +62,9 @@ class Projectile():
 
 class Grenade(Projectile):
 
-    def __init__(self, x, y, width, height, vel, color):
-        Projectile.__init__(self, x, y, width, height, vel, color)
-        self.wind = 10
+    def __init__(self, x, y, mouse_pos):
+        self.wind = wind
+        Projectile.__init__(self, x, y, mouse_pos)
 
 
     def draw(self):
@@ -76,17 +80,18 @@ class Grenade(Projectile):
             cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
             self.alpha =  math.fabs(np.arccos(cosine_angle) - math.pi)
             self.first_time = False
-        self.x = (-self.speed * math.cos(self.alpha) * self.t) + self.init_x
-        self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed + self.wind * math.sin(self.alpha) * 2 * self.t))) + self.init_y
+        self.x = (1 / self.mass * 2) * self.wind[0] * self.t ** 2 + -self.speed * math.cos(self.alpha) * self.t + self.init_x
+        self.y = (-0.5 * self.gravity + (1 / self.mass) * self.wind[1]) * self.t ** 2 + -self.speed * math.sin(self.alpha) * self.t + self.init_y
         self.t += 0.05
         proj = pygame.draw.rect(window, (0, 0, 255), (self.x, self.y, 5, 5))
         items_to_update.append(proj)
-        if self.t >= math.fabs((2 * -self.speed * math.sin(self.alpha)) / self.gravity):
+        if self.t >= math.fabs((2 * -self.speed * math.sin(self.alpha)) / self.gravity) + 1:
             self.t = 0
             self.first_time = True
             return True
         else:
             return False
+
 
 class Character():
 
@@ -165,11 +170,12 @@ players = [
     Character(1200, 500, 50, 20, 5, (0, 0, 255))
 ]
 player_index = 0
+wind = random_wind_interval()
 current_player = players[player_index]
 next_turn_ticks = pygame.time.get_ticks()
 
 while run:
-    pygame.time.delay(25)
+    pygame.time.delay(20)
 
     # Events block
     for event in pygame.event.get():
@@ -185,6 +191,7 @@ while run:
     if (pygame.time.get_ticks() - next_turn_ticks) / 1000 > 10:
         player_index = (player_index + 1) % len(players)
         current_player = players[player_index]
+        wind = random_wind_interval()
         next_turn_ticks = pygame.time.get_ticks()
     
     for index, player in enumerate(players):
