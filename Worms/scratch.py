@@ -2,7 +2,7 @@ import pygame
 import math
 pygame.init()
 
-win = pygame.display.set_mode((700 ,700))
+win = pygame.display.set_mode((1500 ,700))
 
 pygame.display.set_caption('Worms Eater')
 
@@ -61,7 +61,7 @@ timer = 0.1
 nug = 1
 ch = character(50,50,50,20,5)
 while run:
-    pygame.time.delay(50)
+    pygame.time.delay(10)
 
 
     for event in pygame.event.get():
@@ -71,32 +71,26 @@ while run:
     if pygame.key.get_pressed()[pygame.K_e]:
         draw = True
 
-    speed = 50
-    alpha = math.radians(85)
+    speed = -80
+    alpha = math.radians(135)
     g = -9.81
 
-    if y > 600:
-        y = 600
+
 
     if draw:
 
-        x += speed * math.cos(alpha) * t
-        y += (-(-(1 / 2) * g * math.pow(2,t)  + (speed * math.sin(alpha) * t))) * nug
-        t += timer
+        x = (speed * math.cos(alpha) * t) + 250
+        y = ((-0.5* g * t**2 + (speed * math.sin(alpha) * t))) + 600
+        t += 0.05
 
 
     pygame.draw.rect(win, (255, 0, 0), (x, y, 5, 5))
     pygame.display.update()
-    print('Temps =', t)
-    print('Position y =', y)
+
     if not draw:
         t = 0
-        timer = 0.1
-    if t >= 1:
-        nug = -1
-        timer = -0.1
-    if t <= 0:
-        nug = 1
+
+    if t >= math.fabs((2*speed*math.sin(alpha))/g):
         draw = False
 
 
