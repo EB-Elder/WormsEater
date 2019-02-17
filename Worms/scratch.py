@@ -13,6 +13,8 @@ run = True
 global items_to_update
 global players
 
+
+
 class Projectile():
 
     def __init__(self, x, y, mouse_pos, speed=150):
@@ -54,6 +56,37 @@ class Projectile():
         else:
             return False
 
+class Grenade(Projectile):
+
+    def __init__(self, x, y, width, height, vel, color):
+        Projectile.__init__(self, x, y, width, height, vel, color)
+        self.wind = 10
+
+
+    def draw(self):
+        pygame.draw.rect(window,(0,255,0),(screen_x, self.y, 5 ,5))
+        if self.first_time:
+            #Position des point afin de construire l'angle
+            a = np.array([self.mouse_pos[0], self.mouse_pos[1]])
+            b = np.array([self.init_x, self.init_y])
+            c = np.array([screen_x, self.y])
+            ba = a - b
+            bc = c - b
+            #Utilisation de lib Numpy afin d'obtenir les vecteur normaux et le produit vectoriel
+            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+            self.alpha =  math.fabs(np.arccos(cosine_angle) - math.pi)
+            self.first_time = False
+        self.x = (-self.speed * math.cos(self.alpha) * self.t) + self.init_x
+        self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed + self.wind * math.sin(self.alpha) * 2 * self.t))) + self.init_y
+        self.t += 0.05
+        proj = pygame.draw.rect(window, (0, 0, 255), (self.x, self.y, 5, 5))
+        items_to_update.append(proj)
+        if self.t >= math.fabs((2 * -self.speed * math.sin(self.alpha)) / self.gravity):
+            self.t = 0
+            self.first_time = True
+            return True
+        else:
+            return False
 
 class Character():
 
@@ -86,7 +119,10 @@ class Character():
             mouse_pos = pygame.mouse.get_pos()
             self.proj = Projectile(self.x, self.y, mouse_pos)
             self.drawable = False
-
+        if pygame.mouse.get_pressed()[1] and self.drawable:
+            mouse_pos = pygame.mouse.get_pos()
+            self.proj = Grenade(self.x, self.y, mouse_pos)
+            self.drawable = False
 
     def logic(self):
         if self.is_jump:
@@ -126,7 +162,7 @@ class Character():
 items_to_update = []
 players = [
     Character(50, 500, 50, 20, 5, (255, 0, 0)),
-    Character(1200, 450, 50, 20, 5, (0, 0, 255))
+    Character(1200, 500, 50, 20, 5, (0, 0, 255))
 ]
 player_index = 0
 current_player = players[player_index]
