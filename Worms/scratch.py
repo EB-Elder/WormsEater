@@ -11,13 +11,17 @@ pygame.display.set_caption('Worms Eater')
 
 run = True
 
+global itemToUpdate
+itemToUpdate = []
+
+
 class projectile():
 
-    def __init__(self, x, y, mouse_pos, speed=100):
+    def __init__(self, x, y, mouse_pos, speed=150):
         self.x = x
-        self.y = y
+        self.y = y-1
         self.initx = x
-        self.inity = y
+        self.inity = y-1
         self.gravity = -9.81
         self.mouse_pos = mouse_pos
         self.speed = speed
@@ -48,9 +52,8 @@ class projectile():
         self.x = (-self.speed * math.cos(self.alpha) * self.t) + self.initx
         self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed * math.sin(self.alpha) * self.t))) + self.inity
         self.t += 0.05
-        proj = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, 5, 5))
-        pygame.display.update()
-
+        proj = pygame.draw.rect(win, (0, 0, 255), (self.x, self.y, 5, 5))
+        itemToUpdate.append(proj)
 
         if self.t >= math.fabs((2 * -self.speed * math.sin(self.alpha)) / self.gravity):
             self.t = 0
@@ -72,20 +75,18 @@ class character():
         self.keys = pygame.key.get_pressed()
         self.Drawable = True
         self.canBeDrawn = False
+        self.perso = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
+
 
     def actionTester(self):
         self.keys = pygame.key.get_pressed()
 
         if self.keys[pygame.K_LEFT] and self.x > 0:
             self.x -= self.vel
-        if self.keys[pygame.K_RIGHT] and self.x < 500 - self.width:
+        if self.keys[pygame.K_RIGHT] and self.x < screenX - self.width:
             self.x += self.vel
 
         if not self.isJump:
-            if self.keys[pygame.K_UP] and self.y > 0:
-                self.y -= self.vel
-            if self.keys[pygame.K_DOWN] and self.y < 500 - self.heigth:
-                self.y += self.vel
             if self.keys[pygame.K_SPACE]:
                 self.isJump = True
         else:
@@ -109,10 +110,15 @@ class character():
 
         if not self.Drawable:
             self.shoot()
+        try:
+            if pygame.Rect.collidepoint(self.perso, self.proj.x, self.proj.y):
+                print("Its a hit")
+        except AttributeError:
+            pass
 
     def draw(self):
-        perso = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
-
+        self.perso = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
+        itemToUpdate.append(self.perso)
 
     def shoot(self):
 
@@ -125,12 +131,10 @@ class character():
 
 
 
-
-
-ch = character(50,50,50,20,5)
+ch2 = character(150, 500, 50, 20, 5)
+ch = character(50,500,50,20,5)
 while run:
-    pygame.time.delay(20)
-    pygame.display.update()
+    pygame.time.delay(100)
 
 
     for event in pygame.event.get():
@@ -141,11 +145,13 @@ while run:
 
 
 
-
+    ch2.draw()
+    ch2.actionTester()
     ch.actionTester()
     win.fill((0,0,0))
     ch.draw()
-
-
+    pygame.display.flip()
+    pygame.display.update(itemToUpdate)
+    itemToUpdate = []
 
 pygame.quit()
