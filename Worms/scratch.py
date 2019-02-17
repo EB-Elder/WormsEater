@@ -1,12 +1,65 @@
 import pygame
 import math
+import numpy as np
 pygame.init()
 
-win = pygame.display.set_mode((1500 ,700))
+screenX = 1500
+screenY = 700
+win = pygame.display.set_mode((screenX,screenY))
 
 pygame.display.set_caption('Worms Eater')
 
 run = True
+
+class projectile():
+
+    def __init__(self, x, y, mouse_pos, speed=100):
+        self.x = x
+        self.y = y
+        self.gravity = -9.81
+        self.mouse_pos = mouse_pos
+        self.speed = speed
+        self.t = 0
+        self.firstTime = True
+        self.draw()
+
+    def draw(self):
+
+        print("hello")
+        alpha = 0
+
+        #Position des point afin de construire l'angle
+        a = np.array([self.mouse_pos])
+        b = np.array([self.x, self.y])
+        c = np.array([screenX, self.y])
+
+        ba = a - b
+        bc = c - b
+
+        #Utilisation de lib Numpy afin d'obtenir les vecteur normaux et le produit vectoriel
+        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+        alpha = np.arccos(cosine_angle)
+        self.firstTime = False
+
+
+        self.x = (-self.speed * math.cos(alpha) * self.t) + 250
+        self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed * math.sin(alpha) * self.t))) + 600
+        self.t += 0.05
+        proj = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, 5, 5))
+        pygame.display.update()
+
+
+        if self.t >= math.fabs((2 * -self.speed * math.sin(alpha)) / self.gravity):
+            self.t = 0
+            return True
+        else:
+            return False
+
+
+
+
+
+
 
 
 class character():
@@ -20,8 +73,10 @@ class character():
         self.jumpCount = 10
         self.isJump = False
         self.keys = pygame.key.get_pressed()
+        self.Drawable = True
+        self.canBeDrawn = False
 
-    def movement(self):
+    def actionTester(self):
         self.keys = pygame.key.get_pressed()
 
         if self.keys[pygame.K_LEFT] and self.x > 0:
@@ -48,53 +103,49 @@ class character():
                 self.isJump = False
                 self.jumpCount = 10
 
+        if pygame.mouse.get_pressed()[0] and self.Drawable:
+            mousePos = pygame.mouse.get_pos()
+            self.proj = projectile(self.x, self.y, mousePos)
+            self.Drawable = False
+            print("Ye")
+
+
+        if not self.Drawable:
+            self.shoot()
+
     def draw(self):
-        pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
+        perso = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
+
+
+    def shoot(self):
+
+
+       self.Drawable = self.proj.draw()
 
 
 
-draw = False
-t = 0
-x = 250
-y = 600
-timer = 0.1
-nug = 1
+
+
+
+
+
+
 ch = character(50,50,50,20,5)
 while run:
-    pygame.time.delay(10)
+    pygame.time.delay(20)
+    pygame.display.update()
 
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
 
-    if pygame.key.get_pressed()[pygame.K_e]:
-        draw = True
-
-    speed = -80
-    alpha = math.radians(135)
-    g = -9.81
 
 
 
-    if draw:
-
-        x = (speed * math.cos(alpha) * t) + 250
-        y = ((-0.5* g * t**2 + (speed * math.sin(alpha) * t))) + 600
-        t += 0.05
 
 
-    pygame.draw.rect(win, (255, 0, 0), (x, y, 5, 5))
-    pygame.display.update()
-
-    if not draw:
-        t = 0
-
-    if t >= math.fabs((2*speed*math.sin(alpha))/g):
-        draw = False
-
-
-    ch.movement()
+    ch.actionTester()
     win.fill((0,0,0))
     ch.draw()
 
