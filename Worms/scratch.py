@@ -16,51 +16,48 @@ class projectile():
     def __init__(self, x, y, mouse_pos, speed=100):
         self.x = x
         self.y = y
+        self.initx = x
+        self.inity = y
         self.gravity = -9.81
         self.mouse_pos = mouse_pos
         self.speed = speed
         self.t = 0
         self.firstTime = True
+        self.alpha = math.radians(0)
         self.draw()
 
     def draw(self):
 
-        print("hello")
-        alpha = 0
-
+        pygame.draw.rect(win,(0,255,0),(screenX, self.y, 5 ,5))
+        if self.firstTime:
         #Position des point afin de construire l'angle
-        a = np.array([self.mouse_pos])
-        b = np.array([self.x, self.y])
-        c = np.array([screenX, self.y])
+            a = np.array([self.mouse_pos[0], self.mouse_pos[1]])
+            b = np.array([self.initx, self.inity])
+            c = np.array([screenX, self.y])
 
-        ba = a - b
-        bc = c - b
+            ba = a - b
+            bc = c - b
 
         #Utilisation de lib Numpy afin d'obtenir les vecteur normaux et le produit vectoriel
-        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-        alpha = np.arccos(cosine_angle)
-        self.firstTime = False
+            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+            self.alpha =  math.fabs(np.arccos(cosine_angle) - math.pi)
+            self.firstTime = False
 
+        print(self.alpha)
 
-        self.x = (-self.speed * math.cos(alpha) * self.t) + 250
-        self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed * math.sin(alpha) * self.t))) + 600
+        self.x = (-self.speed * math.cos(self.alpha) * self.t) + self.initx
+        self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed * math.sin(self.alpha) * self.t))) + self.inity
         self.t += 0.05
         proj = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, 5, 5))
         pygame.display.update()
 
 
-        if self.t >= math.fabs((2 * -self.speed * math.sin(alpha)) / self.gravity):
+        if self.t >= math.fabs((2 * -self.speed * math.sin(self.alpha)) / self.gravity):
             self.t = 0
+            self.firstTime = True
             return True
         else:
             return False
-
-
-
-
-
-
-
 
 class character():
 
