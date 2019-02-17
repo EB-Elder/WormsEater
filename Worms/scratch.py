@@ -3,155 +3,168 @@ import math
 import numpy as np
 pygame.init()
 
-screenX = 1500
-screenY = 700
-win = pygame.display.set_mode((screenX,screenY))
-
+screen_x = 1500
+screen_y = 700
+window = pygame.display.set_mode((screen_x,screen_y))
 pygame.display.set_caption('Worms Eater')
 
 run = True
 
-global itemToUpdate
-itemToUpdate = []
+global items_to_update
+global players
 
-
-class projectile():
+class Projectile():
 
     def __init__(self, x, y, mouse_pos, speed=150):
         self.x = x
-        self.y = y-1
-        self.initx = x
-        self.inity = y-1
+        self.y = y - 1
+        self.init_x = x
+        self.init_y = y - 1
         self.gravity = -9.81
         self.mouse_pos = mouse_pos
         self.speed = speed
         self.t = 0
-        self.firstTime = True
+        self.first_time = True
         self.alpha = math.radians(0)
         self.draw()
 
+
     def draw(self):
-
-        pygame.draw.rect(win,(0,255,0),(screenX, self.y, 5 ,5))
-        if self.firstTime:
-        #Position des point afin de construire l'angle
+        pygame.draw.rect(window,(0,255,0),(screen_x, self.y, 5 ,5))
+        if self.first_time:
+            #Position des point afin de construire l'angle
             a = np.array([self.mouse_pos[0], self.mouse_pos[1]])
-            b = np.array([self.initx, self.inity])
-            c = np.array([screenX, self.y])
-
+            b = np.array([self.init_x, self.init_y])
+            c = np.array([screen_x, self.y])
             ba = a - b
             bc = c - b
-
-        #Utilisation de lib Numpy afin d'obtenir les vecteur normaux et le produit vectoriel
+            #Utilisation de lib Numpy afin d'obtenir les vecteur normaux et le produit vectoriel
             cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
             self.alpha =  math.fabs(np.arccos(cosine_angle) - math.pi)
-            self.firstTime = False
-
-        print(self.alpha)
-
-        self.x = (-self.speed * math.cos(self.alpha) * self.t) + self.initx
-        self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed * math.sin(self.alpha) * self.t))) + self.inity
+            self.first_time = False
+        self.x = (-self.speed * math.cos(self.alpha) * self.t) + self.init_x
+        self.y = ((-0.5 * self.gravity * self.t ** 2 + (-self.speed * math.sin(self.alpha) * self.t))) + self.init_y
         self.t += 0.05
-        proj = pygame.draw.rect(win, (0, 0, 255), (self.x, self.y, 5, 5))
-        itemToUpdate.append(proj)
-
+        proj = pygame.draw.rect(window, (0, 0, 255), (self.x, self.y, 5, 5))
+        items_to_update.append(proj)
         if self.t >= math.fabs((2 * -self.speed * math.sin(self.alpha)) / self.gravity):
             self.t = 0
-            self.firstTime = True
+            self.first_time = True
             return True
         else:
             return False
 
-class character():
 
-    def __init__(self,x,y,width,heigth,vel):
+class Character():
+
+    def __init__(self, x, y, width, height, vel, color):
         self.x = x
         self.y = y
         self.width = width
-        self.heigth = heigth
+        self.height = height
         self.vel = vel
-        self.jumpCount = 10
-        self.isJump = False
+        self.jump_count = 10
+        self.is_jump = False
         self.keys = pygame.key.get_pressed()
-        self.Drawable = True
-        self.canBeDrawn = False
-        self.perso = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
+        self.drawable = True
+        self.can_be_drawn = True
+        self.color = color
+        self.sprite = pygame.draw.rect(window, self.color, (self.x, self.y, self.width, self.height))
 
 
-    def actionTester(self):
+    def action(self):
         self.keys = pygame.key.get_pressed()
 
         if self.keys[pygame.K_LEFT] and self.x > 0:
             self.x -= self.vel
-        if self.keys[pygame.K_RIGHT] and self.x < screenX - self.width:
+        if self.keys[pygame.K_RIGHT] and self.x < screen_x - self.width:
             self.x += self.vel
-
-        if not self.isJump:
+        if not self.is_jump:
             if self.keys[pygame.K_SPACE]:
-                self.isJump = True
-        else:
-            if self.jumpCount >= -10:
+                self.is_jump = True
+        if pygame.mouse.get_pressed()[0] and self.drawable:
+            mouse_pos = pygame.mouse.get_pos()
+            self.proj = Projectile(self.x, self.y, mouse_pos)
+            self.drawable = False
+
+
+    def logic(self):
+        if self.is_jump:
+            if self.jump_count >= -10:
                 self.neg = 1
-                if self.jumpCount < 0:
+                if self.jump_count < 0:
                     self.neg = -1
-                self.y -= (self.jumpCount ** 2) * 0.5 * self.neg
-                self.jumpCount -= 1
-
+                self.y -= (self.jump_count ** 2) * 0.5 * self.neg
+                self.jump_count -= 1
             else:
-                self.isJump = False
-                self.jumpCount = 10
-
-        if pygame.mouse.get_pressed()[0] and self.Drawable:
-            mousePos = pygame.mouse.get_pos()
-            self.proj = projectile(self.x, self.y, mousePos)
-            self.Drawable = False
-            print("Ye")
-
-
-        if not self.Drawable:
+                self.is_jump = False
+                self.jump_count = 10
+        if not self.drawable:
             self.shoot()
         try:
-            if pygame.Rect.collidepoint(self.perso, self.proj.x, self.proj.y):
-                print("Its a hit")
+            for player in players:
+                if pygame.Rect.collidepoint(player.sprite, self.proj.x, self.proj.y):
+                    player.die()
         except AttributeError:
             pass
+        
 
     def draw(self):
-        self.perso = pygame.draw.rect(win, (255, 0, 0), (self.x, self.y, self.width, self.heigth))
-        itemToUpdate.append(self.perso)
+        if self.can_be_drawn:
+            self.sprite = pygame.draw.rect(window, self.color, (self.x, self.y, self.width, self.height))
+            items_to_update.append(self.sprite)
+
 
     def shoot(self):
+       self.drawable = self.proj.draw()
 
 
-       self.Drawable = self.proj.draw()
+    def die(self):
+        self.can_be_drawn = False
 
 
+items_to_update = []
+players = [
+    Character(50, 500, 50, 20, 5, (255, 0, 0)),
+    Character(1200, 450, 50, 20, 5, (0, 0, 255))
+]
+player_index = 0
+current_player = players[player_index]
+next_turn_ticks = pygame.time.get_ticks()
 
-
-
-
-
-ch2 = character(150, 500, 50, 20, 5)
-ch = character(50,500,50,20,5)
 while run:
-    pygame.time.delay(100)
+    pygame.time.delay(25)
 
-
+    # Events block
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+    # If the opponent or the two players are dead, stop the game
+    if len(players) <= 1:
+        run = False
+    current_player.action()
+    #
+    
+    # Logic block
+    if (pygame.time.get_ticks() - next_turn_ticks) / 1000 > 10:
+        player_index = (player_index + 1) % len(players)
+        current_player = players[player_index]
+        next_turn_ticks = pygame.time.get_ticks()
+    
+    for index, player in enumerate(players):
+        if not player.can_be_drawn:
+            players.pop(index)
+        player.logic()
+    if len(items_to_update) > 0:
+        pygame.display.update(items_to_update)
+        items_to_update = []
+    #
 
-
-
-
-
-    ch2.draw()
-    ch2.actionTester()
-    ch.actionTester()
-    win.fill((0,0,0))
-    ch.draw()
+    # Draw block
+    for player in players:
+        player.draw()
     pygame.display.flip()
-    pygame.display.update(itemToUpdate)
-    itemToUpdate = []
+    window.fill((0,0,0))
+    #
 
 pygame.quit()
